@@ -55,8 +55,15 @@ interface WhatsAppConnection {
   created_at: string;
 }
 
+interface UserProfile {
+  id: string;
+  max_connections: number;
+  full_name: string | null;
+}
+
 export const ConnectionsPage = () => {
   const [connections, setConnections] = useState<WhatsAppConnection[]>([]);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [selectedConnection, setSelectedConnection] = useState<WhatsAppConnection | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -66,23 +73,34 @@ export const ConnectionsPage = () => {
 
   useEffect(() => {
     if (user) {
-      fetchConnections();
+      fetchData();
     }
   }, [user]);
 
-  const fetchConnections = async () => {
+  const fetchData = async () => {
     try {
-      const { data, error } = await supabase
+      // Buscar perfil do usuário
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user?.id)
+        .single();
+
+      if (profileError) throw profileError;
+      setProfile(profileData);
+
+      // Buscar conexões
+      const { data: connectionsData, error: connectionsError } = await supabase
         .from('whatsapp_connections')
         .select('*')
         .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setConnections(data || []);
+      if (connectionsError) throw connectionsError;
+      setConnections(connectionsData || []);
     } catch (error: any) {
       toast({
-        title: "Erro ao carregar conexões",
+        title: "Erro ao carregar dados",
         description: error.message,
         variant: "destructive",
       });
@@ -91,11 +109,22 @@ export const ConnectionsPage = () => {
     }
   };
 
+
   const createConnection = async () => {
     if (!newConnectionName.trim()) {
       toast({
         title: "Nome obrigatório",
         description: "Digite um nome para a conexão",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Verificar limite de conexões
+    if (connections.length >= (profile?.max_connections || 5)) {
+      toast({
+        title: "Limite atingido",
+        description: `Você já atingiu o limite de ${profile?.max_connections || 5} conexões`,
         variant: "destructive",
       });
       return;
@@ -227,10 +256,14 @@ export const ConnectionsPage = () => {
           <div>
             <h1 className="text-3xl font-bold text-foreground">Conexões WhatsApp</h1>
             <p className="text-muted-foreground">
-              Gerencie suas conexões e configurações
+              Gerencie suas conexões e configurações ({connections.length}/{profile?.max_connections || 5})
             </p>
           </div>
-          <Button variant="neon" onClick={() => setShowCreateDialog(true)}>
+          <Button 
+            variant="neon" 
+            onClick={() => setShowCreateDialog(true)}
+            disabled={connections.length >= (profile?.max_connections || 5)}
+          >
             <Plus className="mr-2 h-4 w-4" />
             Nova Conexão
           </Button>
