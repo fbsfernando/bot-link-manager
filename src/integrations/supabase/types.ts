@@ -14,7 +14,102 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          max_connections: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          max_connections?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          max_connections?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      whatsapp_connections: {
+        Row: {
+          allow_channels: boolean
+          allow_numbers: boolean
+          allow_status: boolean
+          api_key: string | null
+          created_at: string
+          debug_mode: boolean
+          id: string
+          last_connected_at: string | null
+          name: string
+          pairing_code: string | null
+          proxy_host: string | null
+          proxy_password: string | null
+          proxy_port: number | null
+          proxy_username: string | null
+          qr_code: string | null
+          status: Database["public"]["Enums"]["connection_status"]
+          updated_at: string
+          user_id: string
+          webhook_url: string | null
+        }
+        Insert: {
+          allow_channels?: boolean
+          allow_numbers?: boolean
+          allow_status?: boolean
+          api_key?: string | null
+          created_at?: string
+          debug_mode?: boolean
+          id?: string
+          last_connected_at?: string | null
+          name: string
+          pairing_code?: string | null
+          proxy_host?: string | null
+          proxy_password?: string | null
+          proxy_port?: number | null
+          proxy_username?: string | null
+          qr_code?: string | null
+          status?: Database["public"]["Enums"]["connection_status"]
+          updated_at?: string
+          user_id: string
+          webhook_url?: string | null
+        }
+        Update: {
+          allow_channels?: boolean
+          allow_numbers?: boolean
+          allow_status?: boolean
+          api_key?: string | null
+          created_at?: string
+          debug_mode?: boolean
+          id?: string
+          last_connected_at?: string | null
+          name?: string
+          pairing_code?: string | null
+          proxy_host?: string | null
+          proxy_password?: string | null
+          proxy_port?: number | null
+          proxy_username?: string | null
+          qr_code?: string | null
+          status?: Database["public"]["Enums"]["connection_status"]
+          updated_at?: string
+          user_id?: string
+          webhook_url?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +118,12 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      connection_status:
+        | "disconnected"
+        | "connecting"
+        | "connected"
+        | "paused"
+        | "error"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +250,14 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      connection_status: [
+        "disconnected",
+        "connecting",
+        "connected",
+        "paused",
+        "error",
+      ],
+    },
   },
 } as const
