@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { WhatsAppSessionStatus } from '@/components/WhatsAppSessionStatus';
 import {
   Dialog,
   DialogContent,
@@ -268,6 +269,9 @@ export const ConnectionsPage = () => {
             Nova Conexão
           </Button>
         </div>
+
+        {/* API Session Status */}
+        <WhatsAppSessionStatus className="mb-6" />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Connections List */}
