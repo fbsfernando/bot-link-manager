@@ -63,7 +63,7 @@ export const useWhatsAppSessions = (baseUrl?: string): UseWhatsAppSessionsReturn
           Authorization: `Bearer ${session.access_token}`,
         },
         body: {
-          baseUrl: apiBaseUrl || baseUrl || 'https://api.whatsapp.com'
+          baseUrl: apiBaseUrl || baseUrl || 'http://waha.ocaradosbots.tech:3000'
         }
       });
 

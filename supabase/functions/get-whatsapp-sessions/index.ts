@@ -81,7 +81,7 @@ serve(async (req) => {
     console.log('User email for filtering:', userEmail);
 
     // Get the base URL from request body or use a default
-    const { baseUrl } = await req.json().catch(() => ({ baseUrl: 'https://api.whatsapp.com' }));
+    const { baseUrl } = await req.json().catch(() => ({ baseUrl: 'http://waha.ocaradosbots.tech:3000' }));
 
     // Make request to external WhatsApp API
     const response = await fetch(`${baseUrl}/api/sessions?all=true`, {

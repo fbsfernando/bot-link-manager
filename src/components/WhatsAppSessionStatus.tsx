@@ -93,7 +93,7 @@ export const WhatsAppSessionStatus = ({ className }: WhatsAppSessionStatusProps)
               </Label>
               <Input
                 id="api-url"
-                placeholder="https://api.whatsapp.com"
+                placeholder="http://waha.ocaradosbots.tech:3000"
                 value={customBaseUrl}
                 onChange={(e) => setCustomBaseUrl(e.target.value)}
                 className="mt-1"
