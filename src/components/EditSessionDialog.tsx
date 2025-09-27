@@ -81,14 +81,22 @@ export function EditSessionDialog({
       setProxyPassword(session.config.proxy?.password || '');
       setWebhooks(session.config.webhooks || []);
       
-      // Convert metadata object to array for editing
-      const metadataArray = Object.entries(session.config.metadata || {}).map(([key, value]) => ({
-        key,
-        value: String(value)
-      }));
+      // Convert metadata object to array for editing, excluding protected fields
+      const metadataArray = Object.entries(session.config.metadata || {})
+        .filter(([key]) => !isProtectedMetadata(key))
+        .map(([key, value]) => ({
+          key,
+          value: String(value)
+        }));
       setMetadata(metadataArray);
     }
   }, [session, open]);
+
+  // Helper function to check if metadata key is protected
+  const isProtectedMetadata = (key: string) => {
+    const protectedKeys = ['user.email', 'user.id'];
+    return protectedKeys.includes(key);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -114,14 +122,24 @@ export function EditSessionDialog({
       config.webhooks = webhooks;
     }
 
-    // Convert metadata array back to object
-    if (metadata.length > 0) {
-      config.metadata = metadata.reduce((acc, { key, value }) => {
-        if (key && value) {
-          acc[key] = value;
-        }
-        return acc;
-      }, {} as Record<string, string>);
+    // Convert metadata array back to object, preserving protected fields
+    if (metadata.length > 0 || session.config.metadata) {
+      config.metadata = {
+        // First, preserve any protected metadata from the original session
+        ...Object.entries(session.config.metadata || {})
+          .filter(([key]) => isProtectedMetadata(key))
+          .reduce((acc, [key, value]) => {
+            acc[key] = String(value);
+            return acc;
+          }, {} as Record<string, string>),
+        // Then add the user-editable metadata
+        ...metadata.reduce((acc, { key, value }) => {
+          if (key && value && !isProtectedMetadata(key)) {
+            acc[key] = value;
+          }
+          return acc;
+        }, {} as Record<string, string>)
+      };
     }
 
     try {
@@ -186,6 +204,13 @@ export function EditSessionDialog({
     const updated = [...metadata];
     updated[index] = { ...updated[index], [field]: value };
     setMetadata(updated);
+  };
+
+  const validateMetadataKey = (key: string) => {
+    if (isProtectedMetadata(key)) {
+      return 'Esta chave é protegida e não pode ser alterada';
+    }
+    return '';
   };
 
   if (!session) return null;
@@ -299,21 +324,51 @@ export function EditSessionDialog({
             <TabsContent value="metadata" className="space-y-4">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <Label>Metadados</Label>
+                  <Label>Metadados Personalizados</Label>
                   <Button type="button" onClick={addMetadata} size="sm">
                     <Plus className="h-4 w-4 mr-2" />
                     Adicionar Metadado
                   </Button>
                 </div>
+
+                {/* Show protected metadata as readonly */}
+                {session && session.config.metadata && (
+                  <div className="space-y-2">
+                    {Object.entries(session.config.metadata)
+                      .filter(([key]) => isProtectedMetadata(key))
+                      .map(([key, value]) => (
+                        <div key={key} className="flex items-center space-x-2 p-2 bg-muted rounded border">
+                          <Input
+                            value={key}
+                            disabled
+                            className="flex-1 opacity-60"
+                          />
+                          <Input
+                            value={String(value)}
+                            disabled
+                            className="flex-1 opacity-60"
+                          />
+                          <div className="w-10 flex justify-center">
+                            <span className="text-xs text-muted-foreground">🔒</span>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                )}
                 
                 {metadata.map((meta, index) => (
                   <div key={index} className="flex items-center space-x-2">
-                    <Input
-                      value={meta.key}
-                      onChange={(e) => updateMetadata(index, 'key', e.target.value)}
-                      placeholder="chave"
-                      className="flex-1"
-                    />
+                    <div className="flex-1">
+                      <Input
+                        value={meta.key}
+                        onChange={(e) => updateMetadata(index, 'key', e.target.value)}
+                        placeholder="chave"
+                        className={validateMetadataKey(meta.key) ? "border-red-500" : ""}
+                      />
+                      {validateMetadataKey(meta.key) && (
+                        <p className="text-xs text-red-500 mt-1">{validateMetadataKey(meta.key)}</p>
+                      )}
+                    </div>
                     <Input
                       value={meta.value}
                       onChange={(e) => updateMetadata(index, 'value', e.target.value)}
@@ -330,6 +385,12 @@ export function EditSessionDialog({
                     </Button>
                   </div>
                 ))}
+
+                {metadata.length === 0 && (!session?.config.metadata || Object.keys(session.config.metadata).filter(key => !isProtectedMetadata(key)).length === 0) && (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    Nenhum metadado personalizado adicionado
+                  </p>
+                )}
               </div>
             </TabsContent>
           </Tabs>

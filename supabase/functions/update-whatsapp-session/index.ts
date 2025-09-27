@@ -99,6 +99,25 @@ Deno.serve(async (req) => {
       )
     }
 
+    // Validate that protected metadata fields are not being overwritten
+    if (config?.metadata) {
+      const protectedFields = ['user.id', 'user.email']
+      const hasProtectedFields = protectedFields.some(field => 
+        config.metadata && config.metadata.hasOwnProperty(field)
+      )
+      
+      if (hasProtectedFields) {
+        console.error('Attempt to modify protected metadata fields')
+        return new Response(
+          JSON.stringify({ error: 'Cannot modify protected metadata fields (user.id, user.email)' }),
+          { 
+            status: 400, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        )
+      }
+    }
+
     // Get WAHA API configuration
     const wahaBaseUrl = Deno.env.get('WAHA_BASE_URL')
     const wahaApiKey = Deno.env.get('WAHA_API_KEY')
@@ -123,6 +142,37 @@ Deno.serve(async (req) => {
       wahaHeaders['X-Api-Key'] = wahaApiKey
     }
 
+    // Get current session to preserve protected metadata
+    const getCurrentSessionUrl = `${wahaBaseUrl}/api/sessions/${sessionName}`
+    const currentSessionResponse = await fetch(getCurrentSessionUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        ...(wahaApiKey && { 'X-Api-Key': wahaApiKey })
+      }
+    })
+
+    let currentMetadata = {}
+    if (currentSessionResponse.ok) {
+      const currentSession = await currentSessionResponse.json()
+      currentMetadata = currentSession.config?.metadata || {}
+    }
+
+    // Merge config preserving protected metadata
+    const finalConfig = {
+      ...config,
+      metadata: {
+        // Preserve protected fields from current session
+        ...(currentMetadata ? Object.fromEntries(
+          Object.entries(currentMetadata).filter(([key]) => 
+            ['user.id', 'user.email'].includes(key)
+          )
+        ) : {}),
+        // Add user-provided metadata
+        ...(config?.metadata || {})
+      }
+    }
+
     // Update session configuration via WAHA API
     const updateUrl = `${wahaBaseUrl}/api/sessions/${sessionName}`
     console.log('Updating session via WAHA API:', updateUrl)
@@ -130,7 +180,7 @@ Deno.serve(async (req) => {
     const wahaResponse = await fetch(updateUrl, {
       method: 'PATCH',
       headers: wahaHeaders,
-      body: JSON.stringify({ config }),
+      body: JSON.stringify({ config: finalConfig }),
     })
 
     if (!wahaResponse.ok) {
