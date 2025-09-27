@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { Home, MessageSquare, Settings, User } from "lucide-react";
+import { Home, MessageSquare, Settings, User, BarChart3 } from "lucide-react";
 
 import {
   Sidebar,
@@ -10,40 +10,48 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarTrigger,
 } from "@/components/ui/sidebar";
 
 const items = [
-  { title: "Início", url: "/", icon: Home },
+  { title: "Dashboard", url: "/", icon: Home },
   { title: "Conexões", url: "/connections", icon: MessageSquare },
+  { title: "Relatórios", url: "/reports", icon: BarChart3 },
   { title: "Configurações", url: "/settings", icon: Settings },
-  { title: "Perfil", url: "/profile", icon: User },
 ];
 
 export function AppSidebar() {
   const location = useLocation();
   const currentPath = location.pathname;
 
-  const isActive = (path: string) => currentPath === path;
-  const getNavCls = ({ isActive }: { isActive: boolean }) =>
-    isActive ? "bg-primary/10 text-primary font-medium border-r-2 border-primary" : "hover:bg-muted/50";
+  const isActive = (path: string) => {
+    if (path === "/" && currentPath === "/") return true;
+    if (path !== "/" && currentPath.startsWith(path)) return true;
+    return false;
+  };
 
   return (
-    <Sidebar>
-      <SidebarTrigger className="m-2 self-end" />
-
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Menu Principal</SidebarGroupLabel>
+    <Sidebar className="border-r bg-sidebar">
+      <SidebarContent className="bg-sidebar">
+        <SidebarGroup className="px-2 py-4">
+          <SidebarGroupLabel className="px-2 text-xs font-medium text-sidebar-foreground/70 uppercase tracking-wider mb-2">
+            Menu Principal
+          </SidebarGroupLabel>
 
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="space-y-1">
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink to={item.url} end className={getNavCls}>
-                      <item.icon className="mr-2 h-4 w-4" />
-                      <span>{item.title}</span>
+                  <SidebarMenuButton 
+                    asChild 
+                    className={`w-full px-3 py-2 rounded-lg transition-colors ${
+                      isActive(item.url) 
+                        ? "bg-primary text-primary-foreground font-medium" 
+                        : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                    }`}
+                  >
+                    <NavLink to={item.url} end={item.url === "/"}>
+                      <item.icon className="h-4 w-4 mr-3 flex-shrink-0" />
+                      <span className="flex-1">{item.title}</span>
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
