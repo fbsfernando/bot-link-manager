@@ -1,13 +1,54 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { useWhatsAppSessions, WhatsAppSession } from '@/hooks/useWhatsAppSessions';
-import { RefreshCw, Loader2, AlertCircle, CheckCircle2, Clock, XCircle, Settings } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { useWhatsAppSessions } from '@/hooks/useWhatsAppSessions';
+import { EditSessionDialog } from '@/components/EditSessionDialog';
+import { 
+  CheckCircle2, 
+  XCircle, 
+  Clock, 
+  AlertCircle, 
+  ChevronDown, 
+  ChevronUp, 
+  RefreshCw,
+  Settings,
+  Loader2
+} from 'lucide-react';
+
+// Type for session compatible with edit dialog
+interface SessionForEdit {
+  name: string;
+  status: string;
+  config: {
+    proxy?: {
+      server: string;
+      username?: string;
+      password?: string;
+    };
+    debug?: boolean;
+    webhooks?: Array<{
+      url: string;
+      events: string[];
+      hmac?: {
+        key: string;
+      };
+      retries?: {
+        delaySeconds: number;
+        attempts: number;
+        policy: string;
+      };
+      customHeaders?: Array<{
+        name: string;
+        value: string;
+      }>;
+    }>;
+    metadata?: {
+      [key: string]: string;
+    };
+  };
+}
 
 interface WhatsAppSessionStatusProps {
   className?: string;
@@ -47,9 +88,51 @@ const getStatusColor = (status: string) => {
   }
 };
 
-export const WhatsAppSessionStatus = ({ className }: WhatsAppSessionStatusProps) => {
+export function WhatsAppSessionStatus({ className }: WhatsAppSessionStatusProps) {
   const { sessions, loading, error, refetch } = useWhatsAppSessions();
-  const [expandedSession, setExpandedSession] = useState<string | null>(null);
+  const [expandedSessions, setExpandedSessions] = useState<Set<string>>(new Set());
+  const [editingSession, setEditingSession] = useState<SessionForEdit | null>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+
+  const toggleExpanded = (sessionName: string) => {
+    const newExpanded = new Set(expandedSessions);
+    if (newExpanded.has(sessionName)) {
+      newExpanded.delete(sessionName);
+    } else {
+      newExpanded.add(sessionName);
+    }
+    setExpandedSessions(newExpanded);
+  };
+
+  const handleEditSession = (session: any) => {
+    // Convert session to compatible format
+    const sessionForEdit: SessionForEdit = {
+      name: session.name,
+      status: session.status,
+      config: {
+        ...session.config,
+        webhooks: session.config?.webhooks?.map((webhook: any) => ({
+          url: webhook.url,
+          events: webhook.events || [],
+          ...(webhook.hmac && typeof webhook.hmac === 'string' ? 
+            { hmac: { key: webhook.hmac } } : 
+            webhook.hmac ? { hmac: webhook.hmac } : {}
+          ),
+          ...(webhook.retries && typeof webhook.retries === 'number' ? 
+            { retries: { delaySeconds: webhook.retries, attempts: 15, policy: 'linear' } } : 
+            webhook.retries ? { retries: webhook.retries } : {}
+          ),
+          customHeaders: webhook.customHeaders || []
+        })) || []
+      }
+    };
+    setEditingSession(sessionForEdit);
+    setShowEditDialog(true);
+  };
+
+  const handleSessionUpdated = () => {
+    refetch();
+  };
 
   const handleRefresh = () => {
     refetch();
@@ -58,10 +141,11 @@ export const WhatsAppSessionStatus = ({ className }: WhatsAppSessionStatusProps)
   return (
     <div className={className}>
       <Card>
-        <CardHeader className="pb-4">
+        <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-xl font-bold text-foreground">
-              Sessões Ativas da API WAHA
+            <CardTitle className="flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-primary" />
+              Status das Sessões WhatsApp
             </CardTitle>
             <Button
               variant="outline"
@@ -70,155 +154,170 @@ export const WhatsAppSessionStatus = ({ className }: WhatsAppSessionStatusProps)
               disabled={loading}
             >
               {loading ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <RefreshCw className="h-4 w-4 mr-2" />
+                <RefreshCw className="h-4 w-4" />
               )}
               Atualizar
             </Button>
           </div>
         </CardHeader>
-
+        
         <CardContent>
           {error && (
-            <div className="flex items-center gap-2 p-3 mb-4 bg-red-500/10 border border-red-500/20 rounded-lg">
-              <AlertCircle className="h-4 w-4 text-red-500" />
-              <span className="text-red-500 text-sm">{error}</span>
+            <div className="text-red-500 text-sm mb-4 p-3 bg-red-50 border border-red-200 rounded">
+              <AlertCircle className="h-4 w-4 inline mr-2" />
+              {error}
             </div>
           )}
 
-          {loading && (
+          {loading && sessions.length === 0 ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              <span className="ml-2 text-muted-foreground">Carregando sessões...</span>
+              <Loader2 className="h-6 w-6 animate-spin mr-2" />
+              <span>Carregando sessões...</span>
             </div>
-          )}
-
-          {!loading && !error && sessions.length === 0 && (
+          ) : sessions.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p>Nenhuma sessão encontrada para este usuário</p>
+              <p>Nenhuma sessão encontrada</p>
             </div>
-          )}
-
-          {!loading && sessions.length > 0 && (
-            <div className="space-y-3">
-              <p className="text-sm text-muted-foreground mb-3">
-                Encontradas {sessions.length} sessão(ões) ativa(s)
-              </p>
-              
-              {sessions.map((session, index) => (
+          ) : (
+            <div className="space-y-4">
+              {sessions.map((session) => (
                 <Collapsible
-                  key={`${session.name}-${index}`}
-                  open={expandedSession === `${session.name}-${index}`}
-                  onOpenChange={(open) => 
-                    setExpandedSession(open ? `${session.name}-${index}` : null)
-                  }
+                  key={session.name}
+                  open={expandedSessions.has(session.name)}
+                  onOpenChange={() => toggleExpanded(session.name)}
                 >
-                  <CollapsibleTrigger asChild>
-                    <Card className="cursor-pointer hover:bg-accent/50 transition-colors">
-                      <CardContent className="p-4">
+                  <Card className="border-2">
+                    <CollapsibleTrigger asChild>
+                      <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center space-x-3">
                             {getStatusIcon(session.status)}
                             <div>
-                              <h4 className="font-medium text-foreground">
-                                {session.name}
-                              </h4>
-                              {session.me && (
-                                <p className="text-sm text-muted-foreground">
-                                  {session.me.pushName} ({session.me.id})
-                                </p>
-                              )}
+                              <h3 className="font-semibold">{session.name}</h3>
+                              <Badge 
+                                variant="outline" 
+                                className={`text-xs ${getStatusColor(session.status)}`}
+                              >
+                                {session.status}
+                              </Badge>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className={getStatusColor(session.status)}>
-                              {session.status}
-                            </Badge>
-                            <Settings className="h-4 w-4 text-muted-foreground" />
+                          
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditSession(session);
+                              }}
+                              className="flex items-center gap-2"
+                            >
+                              <Settings className="h-4 w-4" />
+                              Configurar
+                            </Button>
+                            
+                            {expandedSessions.has(session.name) ? (
+                              <ChevronUp className="h-4 w-4" />
+                            ) : (
+                              <ChevronDown className="h-4 w-4" />
+                            )}
                           </div>
                         </div>
-                      </CardContent>
-                    </Card>
-                  </CollapsibleTrigger>
-
-                  <CollapsibleContent>
-                    <Card className="mt-2 border-l-4 border-l-primary/30">
-                      <CardContent className="p-4 space-y-3">
-                        {session.assignedWorker && (
-                          <div>
-                            <Label className="text-xs font-medium text-muted-foreground">
-                              Worker Atribuído
-                            </Label>
-                            <p className="text-sm font-mono">{session.assignedWorker}</p>
-                          </div>
-                        )}
-
+                      </CardHeader>
+                    </CollapsibleTrigger>
+                    
+                    <CollapsibleContent>
+                      <CardContent className="pt-0 space-y-4">
                         {session.config?.debug !== undefined && (
                           <div>
-                            <Label className="text-xs font-medium text-muted-foreground">
+                            <p className="text-sm font-medium text-muted-foreground mb-1">
                               Modo Debug
-                            </Label>
-                            <p className="text-sm">
-                              {session.config.debug ? 'Ativado' : 'Desativado'}
                             </p>
+                            <Badge variant={session.config.debug ? "default" : "secondary"}>
+                              {session.config.debug ? "Ativo" : "Inativo"}
+                            </Badge>
                           </div>
                         )}
 
                         {session.config?.proxy && (
                           <div>
-                            <Label className="text-xs font-medium text-muted-foreground">
-                              Proxy
-                            </Label>
-                            <p className="text-sm font-mono">{session.config.proxy.server}</p>
-                            {session.config.proxy.username && (
-                              <p className="text-xs text-muted-foreground">
-                                Usuário: {session.config.proxy.username}
+                            <p className="text-sm font-medium text-muted-foreground mb-2">
+                              Configuração de Proxy
+                            </p>
+                            <div className="bg-muted p-3 rounded space-y-1">
+                              <p className="text-sm">
+                                <span className="font-medium">Servidor:</span> {session.config.proxy.server}
                               </p>
-                            )}
+                              {session.config.proxy.username && (
+                                <p className="text-sm">
+                                  <span className="font-medium">Usuário:</span> {session.config.proxy.username}
+                                </p>
+                              )}
+                            </div>
                           </div>
                         )}
 
                         {session.config?.webhooks && session.config.webhooks.length > 0 && (
                           <div>
-                            <Label className="text-xs font-medium text-muted-foreground">
+                            <p className="text-sm font-medium text-muted-foreground mb-2">
                               Webhooks ({session.config.webhooks.length})
-                            </Label>
-                            <div className="space-y-1">
-                              {session.config.webhooks.map((webhook, idx) => (
-                                <p key={idx} className="text-sm font-mono break-all">
-                                  {webhook.url}
+                            </p>
+                            <div className="space-y-2">
+                              {session.config.webhooks.slice(0, 3).map((webhook, idx) => (
+                                <div key={idx} className="bg-muted p-2 rounded">
+                                  <p className="text-sm font-mono break-all">
+                                    {webhook.url}
+                                  </p>
+                                  {webhook.events && webhook.events.length > 0 && (
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                      Eventos: {webhook.events.join(', ')}
+                                    </p>
+                                  )}
+                                </div>
+                              ))}
+                              {session.config.webhooks.length > 3 && (
+                                <p className="text-xs text-muted-foreground">
+                                  +{session.config.webhooks.length - 3} webhook(s) adicional(is)
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {session.config?.metadata && Object.keys(session.config.metadata).length > 0 && (
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground mb-2">
+                              Metadados
+                            </p>
+                            <div className="bg-muted p-3 rounded space-y-1">
+                              {Object.entries(session.config.metadata).map(([key, value]) => (
+                                <p key={key} className="text-sm">
+                                  <span className="font-medium">{key}:</span> {String(value)}
                                 </p>
                               ))}
                             </div>
                           </div>
                         )}
-
-                        {session.config?.metadata && (
-                          <div>
-                            <Label className="text-xs font-medium text-muted-foreground">
-                              Metadados
-                            </Label>
-                            <div className="text-sm space-y-1">
-                              {session.config.metadata["user.id"] && (
-                                <p>ID do Usuário: {session.config.metadata["user.id"]}</p>
-                              )}
-                              {session.config.metadata["user.email"] && (
-                                <p>Email: {session.config.metadata["user.email"]}</p>
-                              )}
-                            </div>
-                          </div>
-                        )}
                       </CardContent>
-                    </Card>
-                  </CollapsibleContent>
+                    </CollapsibleContent>
+                  </Card>
                 </Collapsible>
               ))}
             </div>
           )}
         </CardContent>
       </Card>
+
+      <EditSessionDialog
+        session={editingSession}
+        open={showEditDialog}
+        onOpenChange={setShowEditDialog}
+        onSessionUpdated={handleSessionUpdated}
+      />
     </div>
   );
 };

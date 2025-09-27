@@ -50,3 +50,6 @@ verify_jwt = false
 
 [functions.create-whatsapp-session]
 verify_jwt = false
+
+[functions.update-whatsapp-session]
+verify_jwt = false
