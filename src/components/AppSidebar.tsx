@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { Home, MessageSquare, Settings, User, BarChart3 } from "lucide-react";
+import { Home, MessageSquare, Settings, BarChart3 } from "lucide-react";
 
 import {
   Sidebar,

@@ -1,7 +1,7 @@
 import { ReactNode } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { AuthPage } from '@/pages/AuthPage';
-import { AppSidebar } from './AppSidebar';
+import { AppSidebar } from '../AppSidebar';
 import { AppHeader } from './AppHeader';
 import { SidebarProvider } from '@/components/ui/sidebar';
 
