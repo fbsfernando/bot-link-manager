@@ -48,19 +48,11 @@ const getStatusColor = (status: string) => {
 };
 
 export const WhatsAppSessionStatus = ({ className }: WhatsAppSessionStatusProps) => {
-  const [baseUrl, setBaseUrl] = useState('');
-  const [customBaseUrl, setCustomBaseUrl] = useState('');
-  const { sessions, loading, error, refetch } = useWhatsAppSessions(baseUrl);
+  const { sessions, loading, error, refetch } = useWhatsAppSessions();
   const [expandedSession, setExpandedSession] = useState<string | null>(null);
 
   const handleRefresh = () => {
-    refetch(customBaseUrl || baseUrl);
-  };
-
-  const handleUrlSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setBaseUrl(customBaseUrl);
-    refetch(customBaseUrl);
+    refetch();
   };
 
   return (
@@ -69,7 +61,7 @@ export const WhatsAppSessionStatus = ({ className }: WhatsAppSessionStatusProps)
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
             <CardTitle className="text-xl font-bold text-foreground">
-              Sessões Ativas da API
+              Sessões Ativas da API WAHA
             </CardTitle>
             <Button
               variant="outline"
@@ -85,24 +77,6 @@ export const WhatsAppSessionStatus = ({ className }: WhatsAppSessionStatusProps)
               Atualizar
             </Button>
           </div>
-          
-          <form onSubmit={handleUrlSubmit} className="flex gap-2 mt-4">
-            <div className="flex-1">
-              <Label htmlFor="api-url" className="text-sm font-medium">
-                URL Base da API
-              </Label>
-              <Input
-                id="api-url"
-                placeholder="http://waha.ocaradosbots.tech:3000"
-                value={customBaseUrl}
-                onChange={(e) => setCustomBaseUrl(e.target.value)}
-                className="mt-1"
-              />
-            </div>
-            <Button type="submit" disabled={loading} className="self-end">
-              Conectar
-            </Button>
-          </form>
         </CardHeader>
 
         <CardContent>
@@ -124,7 +98,6 @@ export const WhatsAppSessionStatus = ({ className }: WhatsAppSessionStatusProps)
             <div className="text-center py-8 text-muted-foreground">
               <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
               <p>Nenhuma sessão encontrada para este usuário</p>
-              <p className="text-sm mt-1">Verifique se a URL da API está correta</p>
             </div>
           )}
 

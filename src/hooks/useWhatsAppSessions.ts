@@ -39,16 +39,16 @@ interface UseWhatsAppSessionsReturn {
   sessions: WhatsAppSession[];
   loading: boolean;
   error: string | null;
-  refetch: (baseUrl?: string) => Promise<void>;
+  refetch: () => Promise<void>;
 }
 
-export const useWhatsAppSessions = (baseUrl?: string): UseWhatsAppSessionsReturn => {
+export const useWhatsAppSessions = (): UseWhatsAppSessionsReturn => {
   const [sessions, setSessions] = useState<WhatsAppSession[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { session } = useAuth();
 
-  const fetchSessions = async (apiBaseUrl?: string) => {
+  const fetchSessions = async () => {
     if (!session?.access_token) {
       setError('No authentication token available');
       return;
@@ -61,9 +61,6 @@ export const useWhatsAppSessions = (baseUrl?: string): UseWhatsAppSessionsReturn
       const { data, error: invokeError } = await supabase.functions.invoke('get-whatsapp-sessions', {
         headers: {
           Authorization: `Bearer ${session.access_token}`,
-        },
-        body: {
-          baseUrl: apiBaseUrl || baseUrl || 'http://waha.ocaradosbots.tech:3000'
         }
       });
 
@@ -85,15 +82,15 @@ export const useWhatsAppSessions = (baseUrl?: string): UseWhatsAppSessionsReturn
     }
   };
 
-  const refetch = async (apiBaseUrl?: string) => {
-    await fetchSessions(apiBaseUrl);
+  const refetch = async () => {
+    await fetchSessions();
   };
 
   useEffect(() => {
     if (session?.access_token) {
       fetchSessions();
     }
-  }, [session?.access_token, baseUrl]);
+  }, [session?.access_token]);
 
   return {
     sessions,

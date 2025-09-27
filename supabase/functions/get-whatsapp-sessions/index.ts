@@ -10,6 +10,7 @@ const corsHeaders = {
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const whatsappApiKey = Deno.env.get('WHATSAPP_API_KEY')!;
+const wahaBaseUrl = Deno.env.get('WAHA_BASE_URL')!;
 
 // Create Supabase client
 const supabase = createClient(supabaseUrl, supabaseKey);
@@ -80,11 +81,8 @@ serve(async (req) => {
     const userEmail = profile.email;
     console.log('User email for filtering:', userEmail);
 
-    // Get the base URL from request body or use a default
-    const { baseUrl } = await req.json().catch(() => ({ baseUrl: 'http://waha.ocaradosbots.tech:3000' }));
-
-    // Make request to external WhatsApp API
-    const response = await fetch(`${baseUrl}/api/sessions?all=true`, {
+    // Make request to external WhatsApp API using env var
+    const response = await fetch(`${wahaBaseUrl}/api/sessions?all=true`, {
       method: 'GET',
       headers: {
         'X-Api-Key': whatsappApiKey,
