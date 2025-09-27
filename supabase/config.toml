@@ -46,4 +46,7 @@ port = 54329
 enabled = false
 
 [functions.get-whatsapp-sessions]
-verify_jwt = true
+verify_jwt = false
+
+[functions.create-whatsapp-session]
+verify_jwt = false
