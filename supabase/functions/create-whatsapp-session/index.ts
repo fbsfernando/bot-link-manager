@@ -88,9 +88,54 @@ serve(async (req) => {
     // Get session data from request
     const sessionData: CreateSessionRequest = await req.json();
 
-    // Prepare session creation payload with user metadata
+    // Validate session name
+    if (!sessionData.name || typeof sessionData.name !== 'string') {
+      return new Response(JSON.stringify({ 
+        success: false,
+        error: 'Session name is required' 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const trimmedName = sessionData.name.trim();
+    if (!trimmedName) {
+      return new Response(JSON.stringify({ 
+        success: false,
+        error: 'Session name cannot be empty' 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Only allow alphanumeric characters, hyphens, and underscores
+    const validPattern = /^[a-zA-Z0-9_-]+$/;
+    if (!validPattern.test(trimmedName)) {
+      return new Response(JSON.stringify({ 
+        success: false,
+        error: 'Session name can only contain letters, numbers, hyphens (-) and underscores (_)' 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (trimmedName.length < 2 || trimmedName.length > 30) {
+      return new Response(JSON.stringify({ 
+        success: false,
+        error: 'Session name must be between 2 and 30 characters' 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Prepare session creation payload with user metadata and validated name
     const payload = {
       ...sessionData,
+      name: trimmedName, // Use the validated trimmed name
       config: {
         ...sessionData.config,
         metadata: {

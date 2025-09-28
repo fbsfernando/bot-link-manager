@@ -25,6 +25,7 @@ interface CreateSessionDialogProps {
 
 export const CreateSessionDialog = ({ open, onOpenChange, onSessionCreated }: CreateSessionDialogProps) => {
   const [name, setName] = useState('');
+  const [nameError, setNameError] = useState('');
   const [start, setStart] = useState(true);
   const [debug, setDebug] = useState(false);
   
@@ -41,15 +42,52 @@ export const CreateSessionDialog = ({ open, onOpenChange, onSessionCreated }: Cr
   const { createSession, loading } = useWhatsAppActions();
   const { toast } = useToast();
 
+  // Validate session name
+  const validateSessionName = (value: string) => {
+    const trimmedValue = value.trim();
+    
+    if (!trimmedValue) {
+      setNameError('Nome é obrigatório');
+      return false;
+    }
+    
+    // Only allow alphanumeric characters, hyphens, and underscores
+    const validPattern = /^[a-zA-Z0-9_-]+$/;
+    if (!validPattern.test(trimmedValue)) {
+      setNameError('Nome pode conter apenas letras, números, hífens (-) e underscores (_)');
+      return false;
+    }
+    
+    if (trimmedValue.length < 2) {
+      setNameError('Nome deve ter pelo menos 2 caracteres');
+      return false;
+    }
+    
+    if (trimmedValue.length > 30) {
+      setNameError('Nome deve ter no máximo 30 caracteres');
+      return false;
+    }
+    
+    setNameError('');
+    return true;
+  };
+
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setName(value);
+    
+    if (value.trim()) {
+      validateSessionName(value);
+    } else {
+      setNameError('');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!name.trim()) {
-      toast({
-        title: "Nome obrigatório",
-        description: "Digite um nome para a sessão",
-        variant: "destructive",
-      });
+    // Validate session name before submission
+    if (!validateSessionName(name)) {
       return;
     }
 
@@ -97,6 +135,7 @@ export const CreateSessionDialog = ({ open, onOpenChange, onSessionCreated }: Cr
       
       // Reset form
       setName('');
+      setNameError('');
       setStart(true);
       setDebug(false);
       setProxyServer('');
@@ -142,10 +181,17 @@ export const CreateSessionDialog = ({ open, onOpenChange, onSessionCreated }: Cr
                   <Input
                     id="name"
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Ex: default, principal, teste"
+                    onChange={handleNameChange}
+                    placeholder="Ex: sessao01, principal, teste_bot"
                     required
+                    className={nameError ? "border-red-500" : ""}
                   />
+                  {nameError && (
+                    <p className="text-xs text-red-500 mt-1">{nameError}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Apenas letras, números, hífens (-) e underscores (_)
+                  </p>
                 </div>
                 
                 <div className="flex items-center space-x-2">
@@ -244,7 +290,7 @@ export const CreateSessionDialog = ({ open, onOpenChange, onSessionCreated }: Cr
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading || !!nameError}>
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
