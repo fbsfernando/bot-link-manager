@@ -15,19 +15,14 @@ import {
   PauseCircle,
   RotateCcw,
   QrCode,
-  Smartphone
+  Smartphone,
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-
-interface WhatsAppConnection {
-  id: string;
-  name: string;
-  status: 'disconnected' | 'connecting' | 'connected' | 'paused' | 'error';
-  api_key: string | null;
-  last_connected_at: string | null;
-  created_at: string;
-}
+import { useWhatsAppSessions } from '@/hooks/useWhatsAppSessions';
+import { useWhatsAppActions } from '@/hooks/useWhatsAppActions';
 
 interface UserProfile {
   id: string;
@@ -36,19 +31,20 @@ interface UserProfile {
 }
 
 export const DashboardPage = () => {
-  const [connections, setConnections] = useState<WhatsAppConnection[]>([]);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const { user } = useAuth();
+  const { sessions, loading: sessionsLoading, error: sessionsError, refetch } = useWhatsAppSessions();
+  const { restartSession, loading: actionLoading } = useWhatsAppActions();
 
   useEffect(() => {
     if (user) {
-      fetchData();
+      fetchUserProfile();
     }
   }, [user]);
 
-  const fetchData = async () => {
+  const fetchUserProfile = async () => {
     try {
       // Fetch user profile
       const { data: profileData, error: profileError } = await supabase
@@ -59,19 +55,9 @@ export const DashboardPage = () => {
 
       if (profileError) throw profileError;
       setProfile(profileData);
-
-      // Fetch connections
-      const { data: connectionsData, error: connectionsError } = await supabase
-        .from('whatsapp_connections')
-        .select('*')
-        .eq('user_id', user?.id)
-        .order('created_at', { ascending: false });
-
-      if (connectionsError) throw connectionsError;
-      setConnections(connectionsData || []);
     } catch (error: any) {
       toast({
-        title: "Erro ao carregar dados",
+        title: "Erro ao carregar perfil",
         description: error.message,
         variant: "destructive",
       });
@@ -82,36 +68,64 @@ export const DashboardPage = () => {
 
   const getStatusBadge = (status: string) => {
     const statusMap = {
-      connected: { label: 'Conectado', variant: 'default' as const, icon: CheckCircle },
-      connecting: { label: 'Conectando', variant: 'secondary' as const, icon: Clock },
-      disconnected: { label: 'Desconectado', variant: 'outline' as const, icon: XCircle },
-      paused: { label: 'Pausado', variant: 'secondary' as const, icon: PauseCircle },
-      error: { label: 'Erro', variant: 'destructive' as const, icon: XCircle },
+      'CONNECTED': { label: 'Conectado', variant: 'default' as const, icon: CheckCircle },
+      'CONNECTING': { label: 'Conectando', variant: 'secondary' as const, icon: Clock },
+      'STARTING': { label: 'Iniciando', variant: 'secondary' as const, icon: Clock },
+      'SCAN_QR_CODE': { label: 'Aguardando QR', variant: 'secondary' as const, icon: QrCode },
+      'DISCONNECTED': { label: 'Desconectado', variant: 'outline' as const, icon: XCircle },
+      'STOPPED': { label: 'Pausado', variant: 'secondary' as const, icon: PauseCircle },
+      'FAILED': { label: 'Erro', variant: 'destructive' as const, icon: XCircle },
+      'WORKING': { label: 'Funcionando', variant: 'default' as const, icon: CheckCircle },
     };
     
-    const status_info = statusMap[status as keyof typeof statusMap] || statusMap.disconnected;
-    const Icon = status_info.icon;
+    const statusInfo = statusMap[status.toUpperCase() as keyof typeof statusMap] || statusMap.DISCONNECTED;
+    const Icon = statusInfo.icon;
     
     return (
-      <Badge variant={status_info.variant} className="flex items-center gap-1">
+      <Badge variant={statusInfo.variant} className="flex items-center gap-1">
         <Icon className="h-3 w-3" />
-        {status_info.label}
+        {statusInfo.label}
       </Badge>
     );
   };
 
-  const handleQuickAction = async (connectionId: string, action: string) => {
-    toast({
-      title: "Ação executada",
-      description: `${action} realizada para a conexão`,
-    });
+  const handleQuickAction = async (sessionName: string, action: string) => {
+    if (action === 'Reiniciar') {
+      try {
+        const result = await restartSession(sessionName);
+        if (result.success) {
+          toast({
+            title: "Sucesso",
+            description: `Sessão ${sessionName} reiniciada com sucesso!`,
+          });
+          refetch();
+        } else {
+          toast({
+            title: "Erro",
+            description: result.error || 'Falha ao reiniciar sessão',
+            variant: "destructive",
+          });
+        }
+      } catch (error) {
+        toast({
+          title: "Erro",
+          description: 'Erro inesperado ao reiniciar sessão',
+          variant: "destructive",
+        });
+      }
+    } else {
+      toast({
+        title: "Ação executada",
+        description: `${action} realizada para a sessão ${sessionName}`,
+      });
+    }
   };
 
-  const connectedCount = connections.filter(c => c.status === 'connected').length;
+  const connectedCount = sessions.filter(s => s.status.toUpperCase() === 'CONNECTED' || s.status.toUpperCase() === 'WORKING').length;
   const maxConnections = profile?.max_connections || 5;
-  const usagePercentage = (connections.length / maxConnections) * 100;
+  const usagePercentage = (sessions.length / maxConnections) * 100;
 
-  if (loading) {
+  if (loading || sessionsLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
@@ -135,7 +149,7 @@ export const DashboardPage = () => {
         <Button 
           variant="neon" 
           onClick={() => window.location.href = '/connections'}
-          disabled={connections.length >= maxConnections}
+          disabled={sessions.length >= maxConnections}
         >
           <Plus className="mr-2 h-4 w-4" />
           Nova Conexão
@@ -150,7 +164,7 @@ export const DashboardPage = () => {
             <MessageSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-primary">{connections.length}</div>
+            <div className="text-2xl font-bold text-primary">{sessions.length}</div>
             <p className="text-xs text-muted-foreground">
               de {maxConnections} disponíveis
             </p>
@@ -209,7 +223,34 @@ export const DashboardPage = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {connections.length === 0 ? (
+          {sessionsError && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm flex items-center gap-2">
+              <AlertCircle className="h-4 w-4" />
+              {sessionsError}
+            </div>
+          )}
+          
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-sm text-muted-foreground">
+              {sessions.length} {sessions.length === 1 ? 'sessão' : 'sessões'} encontrada{sessions.length !== 1 ? 's' : ''}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={refetch}
+              disabled={sessionsLoading || actionLoading}
+              className="flex items-center gap-2"
+            >
+              {sessionsLoading ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+              Atualizar
+            </Button>
+          </div>
+
+          {sessions.length === 0 ? (
             <div className="text-center py-8">
               <MessageSquare className="mx-auto h-12 w-12 text-muted-foreground" />
               <h3 className="mt-2 text-sm font-semibold text-foreground">Nenhuma conexão</h3>
@@ -225,9 +266,9 @@ export const DashboardPage = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              {connections.map((connection) => (
+              {sessions.map((session) => (
                 <div
-                  key={connection.id}
+                  key={session.name}
                   className="flex items-center justify-between p-4 rounded-lg border border-border bg-secondary/20 hover:bg-secondary/40 transition-colors"
                 >
                   <div className="flex items-center space-x-4">
@@ -237,38 +278,42 @@ export const DashboardPage = () => {
                       </div>
                     </div>
                     <div>
-                      <h4 className="text-sm font-semibold text-foreground">{connection.name}</h4>
+                      <h4 className="text-sm font-semibold text-foreground">{session.name}</h4>
                       <p className="text-xs text-muted-foreground">
-                        {connection.api_key ? 'API configurada' : 'API não configurada'}
+                        {session.me ? `Conectado como: ${session.me.pushName || session.me.id}` : 'Aguardando conexão'}
                       </p>
                     </div>
                   </div>
 
                   <div className="flex items-center space-x-3">
-                    {getStatusBadge(connection.status)}
+                    {getStatusBadge(session.status)}
                     
                     <div className="flex items-center space-x-1">
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => handleQuickAction(connection.id, 'QR Code')}
+                        onClick={() => window.location.href = '/connections'}
                         className="h-8 w-8 p-0"
+                        title="Ver QR Code"
                       >
                         <QrCode className="h-4 w-4" />
                       </Button>
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => handleQuickAction(connection.id, 'Pareamento')}
+                        onClick={() => window.location.href = '/connections'}
                         className="h-8 w-8 p-0"
+                        title="Gerenciar Sessão"
                       >
                         <Smartphone className="h-4 w-4" />
                       </Button>
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => handleQuickAction(connection.id, 'Reiniciar')}
+                        onClick={() => handleQuickAction(session.name, 'Reiniciar')}
                         className="h-8 w-8 p-0"
+                        disabled={actionLoading}
+                        title="Reiniciar Sessão"
                       >
                         <RotateCcw className="h-4 w-4" />
                       </Button>
