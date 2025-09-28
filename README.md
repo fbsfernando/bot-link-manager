@@ -64,6 +64,15 @@ This project is built with:
 
 Simply open [Lovable](https://lovable.dev/projects/94a2651a-052f-4c15-8da4-f639c0711763) and click on Share -> Publish.
 
+### Deploying on Coolify with Nixpacks
+
+1. Create a new "Static Site" application in Coolify and select your Git repository and branch.
+2. Keep "Build Pack" set to **Nixpacks**; the repo already includes `nixpacks.toml` with the required build and start commands.
+3. Ensure the `PORT` variable is available (Coolify exposes it automatically); no other environment variables are required for the preview server.
+4. Trigger a deployment—Coolify will run `npm ci`, `npm run build`, and serve the built `dist` folder via `npm run preview`.
+
+The app will be reachable using the domain that Coolify assigns to the service (custom domains can also be configured inside Coolify).
+
 ## Can I connect a custom domain to my Lovable project?
 
 Yes, you can!
