@@ -66,6 +66,9 @@ interface UseWhatsAppActionsReturn {
   createSession: (data: CreateSessionData) => Promise<{ success: boolean; error?: string; session?: any }>;
   updateSession: (data: UpdateSessionData) => Promise<{ success: boolean; error?: string; session?: any }>;
   restartSession: (sessionName: string) => Promise<{ success: boolean; error?: string; session?: any }>;
+  deleteSession: (sessionName: string) => Promise<any>;
+  logoutSession: (sessionName: string) => Promise<any>;
+  stopSession: (sessionName: string) => Promise<any>;
   loading: boolean;
 }
 
@@ -172,10 +175,88 @@ export const useWhatsAppActions = (): UseWhatsAppActionsReturn => {
     }
   };
 
+  const deleteSession = async (sessionName: string) => {
+    try {
+      setLoading(true);
+      
+      const { data, error } = await supabase.functions.invoke('delete-whatsapp-session', {
+        body: { sessionName },
+        headers: {
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+      });
+
+      if (error) {
+        console.error('Error deleting WhatsApp session:', error);
+        throw new Error(error.message || 'Edge Function returned a non-2xx status code');
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error deleting WhatsApp session:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const logoutSession = async (sessionName: string) => {
+    try {
+      setLoading(true);
+      
+      const { data, error } = await supabase.functions.invoke('logout-whatsapp-session', {
+        body: { sessionName },
+        headers: {
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+      });
+
+      if (error) {
+        console.error('Error logging out WhatsApp session:', error);
+        throw new Error(error.message || 'Edge Function returned a non-2xx status code');
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error logging out WhatsApp session:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const stopSession = async (sessionName: string) => {
+    try {
+      setLoading(true);
+      
+      const { data, error } = await supabase.functions.invoke('stop-whatsapp-session', {
+        body: { sessionName },
+        headers: {
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+      });
+
+      if (error) {
+        console.error('Error stopping WhatsApp session:', error);
+        throw new Error(error.message || 'Edge Function returned a non-2xx status code');
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error stopping WhatsApp session:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     createSession,
     updateSession,
     restartSession,
+    deleteSession,
+    logoutSession,
+    stopSession,
     loading,
   };
 };

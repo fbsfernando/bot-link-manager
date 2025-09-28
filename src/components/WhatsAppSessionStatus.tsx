@@ -4,8 +4,10 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useWhatsAppSessions } from '@/hooks/useWhatsAppSessions';
+import { useWhatsAppActions } from '@/hooks/useWhatsAppActions';
 import { EditSessionDialog } from '@/components/EditSessionDialog';
 import { QRCodeDialog } from '@/components/QRCodeDialog';
+import { useToast } from '@/hooks/use-toast';
 import { 
   CheckCircle2, 
   XCircle, 
@@ -16,7 +18,11 @@ import {
   RefreshCw,
   Settings,
   Loader2,
-  QrCode
+  QrCode,
+  Play,
+  Pause,
+  LogOut,
+  Trash2
 } from 'lucide-react';
 
 // Type for session compatible with edit dialog
@@ -92,6 +98,8 @@ const getStatusColor = (status: string) => {
 
 export function WhatsAppSessionStatus({ className }: WhatsAppSessionStatusProps) {
   const { sessions, loading, error, refetch } = useWhatsAppSessions();
+  const { restartSession, deleteSession, logoutSession, stopSession, loading: actionLoading } = useWhatsAppActions();
+  const { toast } = useToast();
   const [expandedSessions, setExpandedSessions] = useState<Set<string>>(new Set());
   const [editingSession, setEditingSession] = useState<SessionForEdit | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -147,6 +155,110 @@ export function WhatsAppSessionStatus({ className }: WhatsAppSessionStatusProps)
     setShowQRDialog(true);
   };
 
+  const handleRestartSession = async (sessionName: string) => {
+    try {
+      const result = await restartSession(sessionName);
+      if (result.success) {
+        toast({
+          title: 'Sucesso',
+          description: `Sessão ${sessionName} reiniciada com sucesso!`,
+        });
+        refetch();
+      } else {
+        toast({
+          title: 'Erro',
+          description: result.error || 'Falha ao reiniciar sessão',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Erro',
+        description: 'Erro inesperado ao reiniciar sessão',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleStopSession = async (sessionName: string) => {
+    try {
+      const result = await stopSession(sessionName);
+      if (result.success) {
+        toast({
+          title: 'Sucesso',
+          description: `Sessão ${sessionName} pausada com sucesso!`,
+        });
+        refetch();
+      } else {
+        toast({
+          title: 'Erro',
+          description: result.error || 'Falha ao pausar sessão',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Erro',
+        description: 'Erro inesperado ao pausar sessão',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleLogoutSession = async (sessionName: string) => {
+    try {
+      const result = await logoutSession(sessionName);
+      if (result.success) {
+        toast({
+          title: 'Sucesso',
+          description: `Sessão ${sessionName} desconectada com sucesso!`,
+        });
+        refetch();
+      } else {
+        toast({
+          title: 'Erro',
+          description: result.error || 'Falha ao desconectar sessão',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Erro',
+        description: 'Erro inesperado ao desconectar sessão',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDeleteSession = async (sessionName: string) => {
+    if (!confirm(`Tem certeza que deseja deletar a sessão ${sessionName}? Esta ação não pode ser desfeita.`)) {
+      return;
+    }
+
+    try {
+      const result = await deleteSession(sessionName);
+      if (result.success) {
+        toast({
+          title: 'Sucesso',
+          description: `Sessão ${sessionName} deletada com sucesso!`,
+        });
+        refetch();
+      } else {
+        toast({
+          title: 'Erro',
+          description: result.error || 'Falha ao deletar sessão',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Erro',
+        description: 'Erro inesperado ao deletar sessão',
+        variant: 'destructive',
+      });
+    }
+  };
+
   return (
     <div className={className}>
       <Card>
@@ -160,7 +272,7 @@ export function WhatsAppSessionStatus({ className }: WhatsAppSessionStatusProps)
               variant="outline"
               size="sm"
               onClick={handleRefresh}
-              disabled={loading}
+              disabled={loading || actionLoading}
             >
               {loading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -237,9 +349,67 @@ export function WhatsAppSessionStatus({ className }: WhatsAppSessionStatusProps)
                                 handleEditSession(session);
                               }}
                               className="flex items-center gap-2"
+                              disabled={actionLoading}
                             >
                               <Settings className="h-4 w-4" />
                               Configurar
+                            </Button>
+                            
+                            {/* Action Buttons */}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRestartSession(session.name);
+                              }}
+                              className="flex items-center gap-1"
+                              disabled={actionLoading}
+                            >
+                              <Play className="h-3 w-3" />
+                              Reiniciar
+                            </Button>
+
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleStopSession(session.name);
+                              }}
+                              className="flex items-center gap-1"
+                              disabled={actionLoading}
+                            >
+                              <Pause className="h-3 w-3" />
+                              Pausar
+                            </Button>
+
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleLogoutSession(session.name);
+                              }}
+                              className="flex items-center gap-1"
+                              disabled={actionLoading}
+                            >
+                              <LogOut className="h-3 w-3" />
+                              Desconectar
+                            </Button>
+
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteSession(session.name);
+                              }}
+                              className="flex items-center gap-1"
+                              disabled={actionLoading}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                              Deletar
                             </Button>
                             
                             {expandedSessions.has(session.name) ? (
