@@ -1,8 +1,18 @@
+# Force nixpacks to use Node.js provider
+[providers]
+node = true
+
 [variables]
 NODE_VERSION = "18"
 
+[phases.setup]
+nixPkgs = ["nodejs", "npm"]
+
+[phases.install]
+cmds = ["npm ci"]
+
 [phases.build]
-cmds = ['npm ci', 'npm run build']
+cmds = ["npm run build"]
 
 [phases.start]
-cmd = 'npm run preview -- --host 0.0.0.0 --port $PORT'
+cmd = "npm run preview -- --host 0.0.0.0 --port $PORT"
