@@ -96,10 +96,17 @@ Deno.serve(async (req) => {
       )
     }
 
-    const qrData = await wahaResponse.json()
+    // Get the image as array buffer and convert to base64
+    const imageBuffer = await wahaResponse.arrayBuffer()
+    const base64Image = btoa(String.fromCharCode(...new Uint8Array(imageBuffer)))
 
     return new Response(
-      JSON.stringify({ qrData }),
+      JSON.stringify({ 
+        qrData: {
+          data: base64Image,
+          mimetype: 'image/png'
+        }
+      }),
       {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
