@@ -81,23 +81,15 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Validate that protected metadata fields are not being overwritten
+    // Filter out protected metadata fields from user input
     if (config?.metadata) {
       const protectedFields = ['user.id', 'user.email']
-      const hasProtectedFields = protectedFields.some(field => 
-        config.metadata && config.metadata.hasOwnProperty(field)
+      const filteredMetadata = Object.fromEntries(
+        Object.entries(config.metadata).filter(([key]) => !protectedFields.includes(key))
       )
-      
-      if (hasProtectedFields) {
-        console.error('Attempt to modify protected metadata fields')
-        return new Response(
-          JSON.stringify({ error: 'Cannot modify protected metadata fields (user.id, user.email)' }),
-          { 
-            status: 400, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          }
-        )
-      }
+      // Replace the metadata with filtered version
+      config.metadata = filteredMetadata
+      console.log('Filtered metadata:', filteredMetadata)
     }
 
     // Get WAHA API configuration
