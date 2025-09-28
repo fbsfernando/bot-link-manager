@@ -2,7 +2,7 @@
 providers = ["node"]
 
 [variables]
-NODE_VERSION = "18"
+NODE_VERSION = "20"
 
 [phases.build]
 cmds = ["npm run build"]
