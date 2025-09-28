@@ -43,42 +43,24 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Get JWT token from Authorization header
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('Missing authorization header');
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    
     // Initialize Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     )
-
-    // Get the authorization header
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      console.error('No authorization header provided')
-      return new Response(
-        JSON.stringify({ error: 'No authorization header provided' }),
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      )
-    }
-
-    // Set auth header for supabase client
-    supabaseClient.auth.setSession({
-      access_token: authHeader.replace('Bearer ', ''),
-      refresh_token: ''
-    })
-
-    // Verify user is authenticated
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
+    
+    // Verify JWT and get user
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
     if (authError || !user) {
-      console.error('Authentication failed:', authError)
-      return new Response(
-        JSON.stringify({ error: 'Authentication failed' }),
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      )
+      throw new Error('Invalid or expired token');
     }
 
     console.log('Authenticated user:', user.id)

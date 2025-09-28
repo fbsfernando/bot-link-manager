@@ -16,33 +16,27 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Get JWT token from Authorization header
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('Missing authorization header');
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    
     // Initialize Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
-        },
-      }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     )
-
-    // Get the authenticated user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabaseClient.auth.getUser()
-
+    
+    // Verify JWT and get user
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
     if (authError || !user) {
-      console.error('Authentication error:', authError)
-      return new Response(
-        JSON.stringify({ error: 'Authentication required' }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      )
+      throw new Error('Invalid or expired token');
     }
+
+    console.log('Getting QR for user:', user.id)
 
     // Parse request body
     const { sessionName }: GetQRData = await req.json()
@@ -70,9 +64,10 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Get QR code from WAHA API
+    // Get QR code from WAHA API - using WAHA_BASE_URL
+    const wahaBaseUrl = Deno.env.get('WAHA_BASE_URL')
     const wahaResponse = await fetch(
-      `http://waha.ocaradosbots.tech:3000/api/${sessionName}/auth/qr?format=image`,
+      `${wahaBaseUrl}/api/${sessionName}/auth/qr?format=image`,
       {
         method: 'GET',
         headers: {
