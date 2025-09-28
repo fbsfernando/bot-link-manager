@@ -155,12 +155,12 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Update session configuration via WAHA API
+    // Update session configuration via WAHA API using PUT method
     const updateUrl = `${wahaBaseUrl}/api/sessions/${sessionName}`
     console.log('Updating session via WAHA API:', updateUrl)
 
     const wahaResponse = await fetch(updateUrl, {
-      method: 'PATCH',
+      method: 'PUT',
       headers: wahaHeaders,
       body: JSON.stringify({ config: finalConfig }),
     })
