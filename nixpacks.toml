@@ -1,6 +1,5 @@
 # Force nixpacks to use Node.js provider
-[providers]
-node = true
+providers = ["node"]
 
 [variables]
 NODE_VERSION = "18"
