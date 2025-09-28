@@ -170,6 +170,7 @@ export const DashboardPage = () => {
           variant="neon" 
           onClick={() => window.location.href = '/connections'}
           disabled={sessions.length >= maxConnections}
+          title={sessions.length >= maxConnections ? `Limite atingido (${sessions.length}/${maxConnections})` : 'Criar nova conexão'}
         >
           <Plus className="mr-2 h-4 w-4" />
           Nova Conexão

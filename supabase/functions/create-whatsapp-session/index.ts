@@ -115,7 +115,7 @@ serve(async (req) => {
     if (currentSessionCount >= maxConnections) {
       return new Response(JSON.stringify({ 
         success: false,
-        error: `Limite de sessões atingido. Você pode criar no máximo ${maxConnections} sessões. Atualmente você tem ${currentSessionCount} sessões.`
+        error: `Você atingiu o limite do seu plano (${currentSessionCount}/${maxConnections} sessões). Para criar novas sessões, delete uma sessão existente ou faça upgrade do seu plano.`
       }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
