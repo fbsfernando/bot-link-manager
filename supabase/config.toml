@@ -53,3 +53,6 @@ verify_jwt = false
 
 [functions.update-whatsapp-session]
 verify_jwt = false
+
+[functions.get-whatsapp-qr]
+verify_jwt = false

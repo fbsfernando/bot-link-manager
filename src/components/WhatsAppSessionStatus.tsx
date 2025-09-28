@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useWhatsAppSessions } from '@/hooks/useWhatsAppSessions';
 import { EditSessionDialog } from '@/components/EditSessionDialog';
+import { QRCodeDialog } from '@/components/QRCodeDialog';
 import { 
   CheckCircle2, 
   XCircle, 
@@ -14,7 +15,8 @@ import {
   ChevronUp, 
   RefreshCw,
   Settings,
-  Loader2
+  Loader2,
+  QrCode
 } from 'lucide-react';
 
 // Type for session compatible with edit dialog
@@ -93,6 +95,8 @@ export function WhatsAppSessionStatus({ className }: WhatsAppSessionStatusProps)
   const [expandedSessions, setExpandedSessions] = useState<Set<string>>(new Set());
   const [editingSession, setEditingSession] = useState<SessionForEdit | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showQRDialog, setShowQRDialog] = useState(false);
+  const [selectedSessionForQR, setSelectedSessionForQR] = useState<string>('');
 
   const toggleExpanded = (sessionName: string) => {
     const newExpanded = new Set(expandedSessions);
@@ -136,6 +140,11 @@ export function WhatsAppSessionStatus({ className }: WhatsAppSessionStatusProps)
 
   const handleRefresh = () => {
     refetch();
+  };
+
+  const handleShowQR = (sessionName: string) => {
+    setSelectedSessionForQR(sessionName);
+    setShowQRDialog(true);
   };
 
   return (
@@ -207,6 +216,19 @@ export function WhatsAppSessionStatus({ className }: WhatsAppSessionStatusProps)
                           </div>
                           
                           <div className="flex items-center space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleShowQR(session.name);
+                              }}
+                              className="flex items-center gap-2"
+                            >
+                              <QrCode className="h-4 w-4" />
+                              QR Code
+                            </Button>
+                            
                             <Button
                               variant="outline"
                               size="sm"
@@ -317,6 +339,12 @@ export function WhatsAppSessionStatus({ className }: WhatsAppSessionStatusProps)
         open={showEditDialog}
         onOpenChange={setShowEditDialog}
         onSessionUpdated={handleSessionUpdated}
+      />
+      
+      <QRCodeDialog 
+        open={showQRDialog}
+        onOpenChange={setShowQRDialog}
+        sessionName={selectedSessionForQR}
       />
     </div>
   );
