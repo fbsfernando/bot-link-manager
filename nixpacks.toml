@@ -1,17 +1,8 @@
-# Force nixpacks to use Node.js provider
+# Force Node.js provider and use Caddy for static serving
 providers = ["node"]
 
 [variables]
 NODE_VERSION = "18"
 
-[phases.setup]
-nixPkgs = ["nodejs", "npm"]
-
-[phases.install]
-cmds = ["npm ci"]
-
 [phases.build]
 cmds = ["npm run build"]
-
-[phases.start]
-cmd = "npm run preview -- --host 0.0.0.0 --port $PORT"
