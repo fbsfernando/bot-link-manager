@@ -65,6 +65,7 @@ interface UpdateSessionData {
 interface UseWhatsAppActionsReturn {
   createSession: (data: CreateSessionData) => Promise<{ success: boolean; error?: string; session?: any }>;
   updateSession: (data: UpdateSessionData) => Promise<{ success: boolean; error?: string; session?: any }>;
+  restartSession: (sessionName: string) => Promise<{ success: boolean; error?: string; session?: any }>;
   loading: boolean;
 }
 
@@ -138,9 +139,43 @@ export const useWhatsAppActions = (): UseWhatsAppActionsReturn => {
     }
   };
 
+  const restartSession = async (sessionName: string) => {
+    if (!session?.access_token) {
+      return { success: false, error: 'No authentication token available' };
+    }
+
+    setLoading(true);
+
+    try {
+      const { data: result, error: invokeError } = await supabase.functions.invoke('restart-whatsapp-session', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: { sessionName }
+      });
+
+      if (invokeError) {
+        throw new Error(invokeError.message);
+      }
+
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      return { success: true, session: result.session };
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to restart session';
+      console.error('Error restarting WhatsApp session:', err);
+      return { success: false, error: errorMessage };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     createSession,
     updateSession,
+    restartSession,
     loading,
   };
 };

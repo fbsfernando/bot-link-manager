@@ -56,3 +56,6 @@ verify_jwt = false
 
 [functions.get-whatsapp-qr]
 verify_jwt = false
+
+[functions.restart-whatsapp-session]
+verify_jwt = false
