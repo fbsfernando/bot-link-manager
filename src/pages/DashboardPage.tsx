@@ -121,7 +121,27 @@ export const DashboardPage = () => {
     }
   };
 
-  const connectedCount = sessions.filter(s => s.status.toUpperCase() === 'CONNECTED' || s.status.toUpperCase() === 'WORKING').length;
+  // Calculate metrics based on session status
+  const connectedCount = sessions.filter(s => 
+    ['CONNECTED', 'WORKING'].includes(s.status.toUpperCase())
+  ).length;
+  
+  const waitingCount = sessions.filter(s => 
+    ['SCAN_QR_CODE', 'STARTING', 'CONNECTING'].includes(s.status.toUpperCase())
+  ).length;
+  
+  const pausedCount = sessions.filter(s => 
+    ['STOPPED', 'PAUSED'].includes(s.status.toUpperCase())
+  ).length;
+  
+  const errorCount = sessions.filter(s => 
+    ['FAILED', 'ERROR'].includes(s.status.toUpperCase())
+  ).length;
+  
+  const disconnectedCount = sessions.filter(s => 
+    ['DISCONNECTED'].includes(s.status.toUpperCase())
+  ).length;
+
   const maxConnections = profile?.max_connections || 5;
   const usagePercentage = (sessions.length / maxConnections) * 100;
 
@@ -160,7 +180,7 @@ export const DashboardPage = () => {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card className="bg-gradient-card border-border">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Conexões</CardTitle>
+            <CardTitle className="text-sm font-medium">Total de Sessões</CardTitle>
             <MessageSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -173,13 +193,26 @@ export const DashboardPage = () => {
 
         <Card className="bg-gradient-card border-border">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Conexões Ativas</CardTitle>
-            <Zap className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Ativas</CardTitle>
+            <CheckCircle className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-neon-green">{connectedCount}</div>
+            <div className="text-2xl font-bold text-green-500">{connectedCount}</div>
             <p className="text-xs text-muted-foreground">
-              operando normalmente
+              conectadas e funcionando
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-card border-border">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Aguardando</CardTitle>
+            <QrCode className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-500">{waitingCount}</div>
+            <p className="text-xs text-muted-foreground">
+              aguardando QR ou iniciando
             </p>
           </CardContent>
         </Card>
@@ -192,6 +225,35 @@ export const DashboardPage = () => {
           <CardContent>
             <div className="text-2xl font-bold">{usagePercentage.toFixed(0)}%</div>
             <Progress value={usagePercentage} className="mt-2" />
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Additional Metrics */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card className="bg-gradient-card border-border">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pausadas</CardTitle>
+            <PauseCircle className="h-4 w-4 text-yellow-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-yellow-500">{pausedCount}</div>
+            <p className="text-xs text-muted-foreground">
+              sessões pausadas/paradas
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-card border-border">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Com Erro</CardTitle>
+            <XCircle className="h-4 w-4 text-red-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-500">{errorCount}</div>
+            <p className="text-xs text-muted-foreground">
+              sessões com falha
+            </p>
           </CardContent>
         </Card>
 
