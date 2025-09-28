@@ -71,10 +71,10 @@ serve(async (req) => {
 
     console.log('Creating session for user:', user.id);
 
-    // Get user profile to obtain email for metadata
+    // Get user profile to obtain email and max_connections limit
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('email')
+      .select('email, max_connections')
       .eq('user_id', user.id)
       .single();
 
@@ -83,7 +83,44 @@ serve(async (req) => {
     }
 
     const userEmail = profile.email;
+    const maxConnections = profile.max_connections || 5;
     console.log('User email for metadata:', userEmail);
+    console.log('Max connections allowed:', maxConnections);
+
+    // Check current number of sessions for this user via WAHA API
+    const sessionsResponse = await fetch(`${wahaBaseUrl}/api/sessions?all=true`, {
+      method: 'GET',
+      headers: {
+        'X-Api-Key': whatsappApiKey,
+        'Accept': 'application/json',
+      },
+    });
+
+    if (!sessionsResponse.ok) {
+      console.error('Failed to fetch current sessions from WAHA API');
+      throw new Error('Unable to verify current session count');
+    }
+
+    const allSessions = await sessionsResponse.json();
+    
+    // Filter sessions that belong to this user
+    const userSessions = allSessions.filter((session: any) => 
+      session.config?.metadata?.['user.email'] === userEmail
+    );
+    
+    const currentSessionCount = userSessions.length;
+    console.log('Current sessions count:', currentSessionCount);
+    
+    // Validate session limit
+    if (currentSessionCount >= maxConnections) {
+      return new Response(JSON.stringify({ 
+        success: false,
+        error: `Limite de sessões atingido. Você pode criar no máximo ${maxConnections} sessões. Atualmente você tem ${currentSessionCount} sessões.`
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     // Get session data from request
     const sessionData: CreateSessionRequest = await req.json();
