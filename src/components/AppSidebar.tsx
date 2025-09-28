@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { Home, MessageSquare, Settings, BarChart3 } from "lucide-react";
+import { Home, MessageSquare, Settings } from "lucide-react";
 
 import {
   Sidebar,
@@ -15,7 +15,6 @@ import {
 const items = [
   { title: "Dashboard", url: "/", icon: Home },
   { title: "Conexões", url: "/connections", icon: MessageSquare },
-  { title: "Relatórios", url: "/reports", icon: BarChart3 },
   { title: "Configurações", url: "/settings", icon: Settings },
 ];
 

@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       profiles: {
         Row: {
+          api_key: string | null
           created_at: string
           email: string | null
           full_name: string | null
@@ -25,6 +26,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          api_key?: string | null
           created_at?: string
           email?: string | null
           full_name?: string | null
@@ -34,6 +36,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          api_key?: string | null
           created_at?: string
           email?: string | null
           full_name?: string | null
@@ -115,7 +118,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_api_key: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      regenerate_user_api_key: {
+        Args: { user_uuid: string }
+        Returns: string
+      }
     }
     Enums: {
       connection_status:
