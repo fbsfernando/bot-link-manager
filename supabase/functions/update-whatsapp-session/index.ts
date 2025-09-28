@@ -120,7 +120,7 @@ Deno.serve(async (req) => {
 
     // Get WAHA API configuration
     const wahaBaseUrl = Deno.env.get('WAHA_BASE_URL')
-    const wahaApiKey = Deno.env.get('WAHA_API_KEY')
+    const wahaApiKey = Deno.env.get('WHATSAPP_API_KEY')
     
     if (!wahaBaseUrl) {
       console.error('WAHA_BASE_URL not configured')

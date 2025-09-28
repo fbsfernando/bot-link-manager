@@ -24,7 +24,7 @@ serve(async (req) => {
       );
     }
 
-    const wahaApiKey = Deno.env.get('WAHA_API_KEY');
+    const wahaApiKey = Deno.env.get('WHATSAPP_API_KEY');
     const wahaBaseUrl = Deno.env.get('WAHA_BASE_URL');
 
     if (!wahaApiKey || !wahaBaseUrl) {

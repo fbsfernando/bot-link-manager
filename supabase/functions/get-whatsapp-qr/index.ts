@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
     }
 
     // Get WAHA API key from secrets
-    const wahaApiKey = Deno.env.get('WAHA_API_KEY')
+    const wahaApiKey = Deno.env.get('WHATSAPP_API_KEY')
     if (!wahaApiKey) {
       console.error('WAHA_API_KEY not found in environment variables')
       return new Response(
