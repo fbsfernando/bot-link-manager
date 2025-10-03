@@ -2,7 +2,7 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = "http://supabasekong-qgwwoow08ogg48g008kg8cs0.91.98.123.205.sslip.io";
+const SUPABASE_URL = "https://db-dash-wpp-acad.ocaradosbots.tech";
 const SUPABASE_PUBLISHABLE_KEY = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdXBhYmFzZSIsImlhdCI6MTc1OTM1MTYyMCwiZXhwIjo0OTE1MDI1MjIwLCJyb2xlIjoiYW5vbiJ9.vVFwqgBmzTfc8dgraI2QQavLD9Ydt1PdqtKMyAE-YWo";
 
 // Import the supabase client like this:
