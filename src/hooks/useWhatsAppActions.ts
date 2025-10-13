@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
+import { WahaApp, WahaAppType } from '@/types/waha';
 
 interface CreateSessionData {
   name: string;
@@ -62,6 +63,27 @@ interface UpdateSessionData {
   };
 }
 
+interface CreateAppData {
+  id?: string;
+  session: string;
+  app: WahaAppType;
+  enabled?: boolean;
+  config: Record<string, unknown>;
+}
+
+interface UpdateAppData {
+  id: string;
+  session: string;
+  app: WahaAppType;
+  enabled?: boolean;
+  config: Record<string, unknown>;
+}
+
+interface DeleteAppData {
+  id: string;
+  session: string;
+}
+
 interface UseWhatsAppActionsReturn {
   createSession: (data: CreateSessionData) => Promise<{ success: boolean; error?: string; session?: any }>;
   updateSession: (data: UpdateSessionData) => Promise<{ success: boolean; error?: string; session?: any }>;
@@ -69,6 +91,9 @@ interface UseWhatsAppActionsReturn {
   deleteSession: (sessionName: string) => Promise<any>;
   logoutSession: (sessionName: string) => Promise<any>;
   stopSession: (sessionName: string) => Promise<any>;
+  createApp: (data: CreateAppData) => Promise<{ success: boolean; error?: string; app?: WahaApp }>;
+  updateApp: (data: UpdateAppData) => Promise<{ success: boolean; error?: string; app?: WahaApp }>;
+  deleteApp: (data: DeleteAppData) => Promise<{ success: boolean; error?: string }>;
   loading: boolean;
 }
 
@@ -250,6 +275,105 @@ export const useWhatsAppActions = (): UseWhatsAppActionsReturn => {
     }
   };
 
+  const createApp = async (data: CreateAppData) => {
+    if (!session?.access_token) {
+      return { success: false, error: 'No authentication token available' };
+    }
+
+    setLoading(true);
+
+    try {
+      const { data: result, error: invokeError } = await supabase.functions.invoke('create-waha-app', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: data,
+      });
+
+      if (invokeError) {
+        throw new Error(invokeError.message);
+      }
+
+      if (result?.error) {
+        throw new Error(result.error);
+      }
+
+      return { success: true, app: result.app as WahaApp };
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create app';
+      console.error('Error creating WAHA app:', err);
+      return { success: false, error: errorMessage };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateApp = async (data: UpdateAppData) => {
+    if (!session?.access_token) {
+      return { success: false, error: 'No authentication token available' };
+    }
+
+    setLoading(true);
+
+    try {
+      const { data: result, error: invokeError } = await supabase.functions.invoke('update-waha-app', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: data,
+      });
+
+      if (invokeError) {
+        throw new Error(invokeError.message);
+      }
+
+      if (result?.error) {
+        throw new Error(result.error);
+      }
+
+      return { success: true, app: result.app as WahaApp };
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update app';
+      console.error('Error updating WAHA app:', err);
+      return { success: false, error: errorMessage };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteApp = async (data: DeleteAppData) => {
+    if (!session?.access_token) {
+      return { success: false, error: 'No authentication token available' };
+    }
+
+    setLoading(true);
+
+    try {
+      const { data: result, error: invokeError } = await supabase.functions.invoke('delete-waha-app', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: data,
+      });
+
+      if (invokeError) {
+        throw new Error(invokeError.message);
+      }
+
+      if (result?.error) {
+        throw new Error(result.error);
+      }
+
+      return { success: true };
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete app';
+      console.error('Error deleting WAHA app:', err);
+      return { success: false, error: errorMessage };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     createSession,
     updateSession,
@@ -257,6 +381,9 @@ export const useWhatsAppActions = (): UseWhatsAppActionsReturn => {
     deleteSession,
     logoutSession,
     stopSession,
+    createApp,
+    updateApp,
+    deleteApp,
     loading,
   };
 };

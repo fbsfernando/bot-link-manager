@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
+import { WahaApp } from '@/types/waha';
 
 interface WhatsAppSessionMe {
   id: string;
@@ -33,6 +34,7 @@ export interface WhatsAppSession {
   me?: WhatsAppSessionMe;
   assignedWorker?: string;
   config?: WhatsAppSessionConfig;
+  apps?: WahaApp[];
 }
 
 interface UseWhatsAppSessionsReturn {
@@ -72,7 +74,14 @@ export const useWhatsAppSessions = (): UseWhatsAppSessionsReturn => {
         throw new Error(data.error);
       }
 
-      setSessions(data.sessions || []);
+      const fetchedSessions: WhatsAppSession[] = Array.isArray(data.sessions)
+        ? data.sessions.map((session: WhatsAppSession) => ({
+            ...session,
+            apps: session.apps || [],
+          }))
+        : [];
+
+      setSessions(fetchedSessions);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch sessions';
       setError(errorMessage);

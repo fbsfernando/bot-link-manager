@@ -15,6 +15,14 @@ const wahaBaseUrl = Deno.env.get('WAHA_BASE_URL')!;
 // Create Supabase client
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+interface WahaApp {
+  id: string;
+  session: string;
+  app: string;
+  config: Record<string, unknown>;
+  enabled?: boolean;
+}
+
 interface WhatsAppSession {
   name: string;
   status: string;
@@ -42,6 +50,7 @@ interface WhatsAppSession {
       customHeaders?: any[];
     }>;
   };
+  apps?: WahaApp[];
 }
 
 serve(async (req) => {
@@ -105,19 +114,54 @@ serve(async (req) => {
 
     console.log('Filtered sessions for user:', userSessions.length);
 
-    // Transform sessions to match our interface
-    const transformedSessions = userSessions.map(session => ({
-      name: session.name,
-      status: session.status,
-      me: session.me,
-      assignedWorker: session.assignedWorker,
-      config: {
-        metadata: session.config?.metadata,
-        proxy: session.config?.proxy,
-        debug: session.config?.debug || false,
-        webhooks: session.config?.webhooks || []
-      }
-    }));
+    // Fetch apps for each session in parallel
+    const transformedSessions = await Promise.all(
+      userSessions.map(async (session) => {
+        let apps: WahaApp[] = [];
+
+        try {
+          const appsResponse = await fetch(
+            `${wahaBaseUrl}/api/apps?session=${encodeURIComponent(session.name)}`,
+            {
+              method: 'GET',
+              headers: {
+                'X-Api-Key': whatsappApiKey,
+                'Accept': 'application/json',
+              },
+            },
+          );
+
+          if (appsResponse.ok) {
+            apps = await appsResponse.json();
+          } else {
+            console.error(
+              `Failed to fetch apps for session ${session.name}:`,
+              appsResponse.status,
+              appsResponse.statusText,
+            );
+          }
+        } catch (appsError) {
+          console.error(
+            `Error fetching apps for session ${session.name}:`,
+            appsError,
+          );
+        }
+
+        return {
+          name: session.name,
+          status: session.status,
+          me: session.me,
+          assignedWorker: session.assignedWorker,
+          config: {
+            metadata: session.config?.metadata,
+            proxy: session.config?.proxy,
+            debug: session.config?.debug || false,
+            webhooks: session.config?.webhooks || [],
+          },
+          apps,
+        };
+      }),
+    );
 
     return new Response(JSON.stringify({
       sessions: transformedSessions,

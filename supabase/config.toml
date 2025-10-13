@@ -59,3 +59,15 @@ verify_jwt = false
 
 [functions.restart-whatsapp-session]
 verify_jwt = false
+
+[functions.create-waha-app]
+verify_jwt = false
+
+[functions.update-waha-app]
+verify_jwt = false
+
+[functions.delete-waha-app]
+verify_jwt = false
+
+[functions.get-waha-chatwoot-locales]
+verify_jwt = false

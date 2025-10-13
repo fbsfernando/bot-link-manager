@@ -3,10 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { useWhatsAppSessions } from '@/hooks/useWhatsAppSessions';
+import { useWhatsAppSessions, WhatsAppSession as WhatsAppSessionType } from '@/hooks/useWhatsAppSessions';
 import { useWhatsAppActions } from '@/hooks/useWhatsAppActions';
 import { EditSessionDialog } from '@/components/EditSessionDialog';
 import { QRCodeDialog } from '@/components/QRCodeDialog';
+import { SessionAppsDialog } from '@/components/SessionAppsDialog';
 import { useToast } from '@/hooks/use-toast';
 import { 
   CheckCircle2, 
@@ -22,7 +23,8 @@ import {
   Play,
   Pause,
   LogOut,
-  Trash2
+  Trash2,
+  Puzzle
 } from 'lucide-react';
 
 // Type for session compatible with edit dialog
@@ -105,6 +107,8 @@ export function WhatsAppSessionStatus({ className }: WhatsAppSessionStatusProps)
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showQRDialog, setShowQRDialog] = useState(false);
   const [selectedSessionForQR, setSelectedSessionForQR] = useState<string>('');
+  const [sessionForApps, setSessionForApps] = useState<WhatsAppSessionType | null>(null);
+  const [showAppsDialog, setShowAppsDialog] = useState(false);
 
   const toggleExpanded = (sessionName: string) => {
     const newExpanded = new Set(expandedSessions);
@@ -116,7 +120,7 @@ export function WhatsAppSessionStatus({ className }: WhatsAppSessionStatusProps)
     setExpandedSessions(newExpanded);
   };
 
-  const handleEditSession = (session: any) => {
+  const handleEditSession = (session: WhatsAppSessionType) => {
     // Convert session to compatible format
     const sessionForEdit: SessionForEdit = {
       name: session.name,
@@ -153,6 +157,11 @@ export function WhatsAppSessionStatus({ className }: WhatsAppSessionStatusProps)
   const handleShowQR = (sessionName: string) => {
     setSelectedSessionForQR(sessionName);
     setShowQRDialog(true);
+  };
+
+  const handleManageApps = (session: WhatsAppSessionType) => {
+    setSessionForApps(session);
+    setShowAppsDialog(true);
   };
 
   const handleRestartSession = async (sessionName: string) => {
@@ -354,6 +363,20 @@ export function WhatsAppSessionStatus({ className }: WhatsAppSessionStatusProps)
                               <Settings className="h-4 w-4" />
                               Configurar
                             </Button>
+
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleManageApps(session);
+                              }}
+                              className="flex items-center gap-2"
+                              disabled={actionLoading}
+                            >
+                              <Puzzle className="h-4 w-4" />
+                              Apps
+                            </Button>
                             
                             {/* Action Buttons */}
                             <Button
@@ -424,6 +447,30 @@ export function WhatsAppSessionStatus({ className }: WhatsAppSessionStatusProps)
                     
                     <CollapsibleContent>
                       <CardContent className="pt-0 space-y-4">
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground mb-2">
+                            Apps configurados
+                          </p>
+                          {session.apps && session.apps.length > 0 ? (
+                            <div className="flex flex-wrap gap-2">
+                              {session.apps.map((app) => (
+                                <Badge
+                                  key={app.id}
+                                  variant={app.enabled === false ? 'secondary' : 'default'}
+                                  className={app.enabled === false ? 'opacity-75' : ''}
+                                >
+                                  {app.app}
+                                  {app.enabled === false ? ' (desativado)' : ''}
+                                </Badge>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-muted-foreground">
+                              Nenhum app configurado.
+                            </p>
+                          )}
+                        </div>
+
                         {session.config?.debug !== undefined && (
                           <div>
                             <p className="text-sm font-medium text-muted-foreground mb-1">
@@ -515,6 +562,18 @@ export function WhatsAppSessionStatus({ className }: WhatsAppSessionStatusProps)
         open={showQRDialog}
         onOpenChange={setShowQRDialog}
         sessionName={selectedSessionForQR}
+      />
+
+      <SessionAppsDialog
+        session={sessionForApps}
+        open={showAppsDialog}
+        onOpenChange={(open) => {
+          setShowAppsDialog(open);
+          if (!open) {
+            setSessionForApps(null);
+          }
+        }}
+        onAppsUpdated={handleSessionUpdated}
       />
     </div>
   );
